@@ -24,7 +24,7 @@ N = cross(v1, v2);
 
 Op = n'*A0*n;
 %pnt_p = ((n'*A0 - pnt)'*n)*n
-pnt_p = (pnt - (dot(pnt,n)/norm(n)^2)*n);
+%pnt_p = (pnt - (dot(pnt,n)/norm(n)^2)*n);
 %pnt_p2 = pnt - pnt*n.*n
 
 [P,Q] = meshgrid(0:0.1:1); % Provide a gridwork (you choose the size)
@@ -78,10 +78,10 @@ plot3(C(1), C(2), C(3), 'om')
 %plot3([A(1), n(1)+A(1)], [A(2), n(2)+A(2)], [A(3), n(3)+A(3)], 'r')
 plot3(Op(1), Op(2), Op(3), 'ok', 'MarkerFaceColor', 'none')
 plot3(pnt(1), pnt(2), pnt(3), 'r', 'Marker', 'hexagram', 'MarkerFaceColor', 'r')
-plot3(pnt_p(1)+Op, pnt_p(2)+Op, pnt_p(3)+Op, 'r', 'Marker', 'hexagram', 'MarkerFaceColor', 'none')
+%plot3(pnt_p(1)+Op, pnt_p(2)+Op, pnt_p(3)+Op, 'r', 'Marker', 'hexagram', 'MarkerFaceColor', 'none')
 
 plot3([0, n(1)], [0, n(2)], [0, n(3)], ':r')
-plot3([pnt(1), n(1)+pnt(1)], [pnt(2), n(2)+pnt(2)], [pnt(3), n(3)+pnt(3)], ':r')
+%plot3([pnt(1), n(1)+pnt(1)], [pnt(2), n(2)+pnt(2)], [pnt(3), n(3)+pnt(3)], ':r')
 
 plot3([Op(1), rho_p(1)+Op(1)], [Op(2), rho_p(2)+Op(2)], [Op(3), rho_p(3)+Op(3)], ':b')
 plot3([Op(1), rho_m(1)+Op(1)], [Op(2), rho_m(2)+Op(2)], [Op(3), rho_m(3)+Op(3)], '--b')
@@ -93,6 +93,7 @@ plot3([Op(1), rho(1)+Op(1)], [Op(2), rho(2)+Op(2)], [Op(3), rho(3)+Op(3)], '-.r'
 
 %plot3([pnt_p(1), d(1)+pnt_p(1)], [pnt_p(2), d(2)+pnt_p(2)], [pnt_p(3), d(3)+pnt_p(3)], '-.k')
 plot3([r(1), d(1)+r(1)], [r(2), d(2)+r(2)], [r(3), d(3)+r(3)], '-.k')
+plot3(rho(1)+Op(1), rho(2)+Op(2), rho(3)+Op(3), 'r', 'Marker', 'hexagram', 'MarkerFaceColor', 'none')
 
 patch('Faces',F,'Vertices',V, 'FaceColor', FC)
 
