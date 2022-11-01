@@ -1,5 +1,5 @@
 
-clc
+%clc
 
 A = [1 0 0]';
 B = [0 1 0]';
@@ -73,7 +73,7 @@ T1 = P0*log((R_p+l_p)/(R_m+l_m));
 T2 = atan((P0*l_p)/(R0^2 + norm(d)*R_p));
 T3 = atan((P0*l_m)/(R0^2 + norm(d)*R_m));
 
-I = P0_n'*u*(T1-norm(d)*(T2-T3));
+I = P0_n'*u*(T1-norm(d)*(T2-T3))
 
 figure();
 FC = [1 1 1];
