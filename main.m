@@ -3,7 +3,6 @@
 
 clc;
 
-clc
 
 load("MoMbenchmark\MoMbenchmarkData.mat")
 
@@ -18,9 +17,15 @@ end
 figure()
 subplot(2, 1, 1)
 hold on
-plot(r(:,3), Ival, ':')
-plot(r(:,3), Icalc, '-.')
+plot(r(:,3), Ival, '--')
+plot(r(:,3), Icalc, ':')
+legend("Benchmark", "Calculation")
+%grid on, grid minor;
 
 subplot(2, 1, 2)
 hold on
-plot(r(:,3), Ival-Icalc)
+plot(r(:,3), (Ival-Icalc))
+yline(max(abs(Ival-Icalc)), '--r', string(max(abs(Ival-Icalc))),...
+      'LabelHorizontalAlignment','center',...
+      'LabelVerticalAlignment','middle');
+%grid on, grid minor;
