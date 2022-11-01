@@ -36,10 +36,9 @@ Z = z0+v1(3,1)*P+v2(3,1)*Q;
 
 
 l_mm = C;
-l_pp = B;
+l_pp = A;
 
 r = [0.5, 2, 0]';
-r(2)
 
 r_p = l_pp;
 r_m = l_mm;
@@ -74,7 +73,7 @@ T1 = P0*log((R_p+l_p)/(R_m+l_m));
 T2 = atan((P0*l_p)/(R0^2 + norm(d)*R_p));
 T3 = atan((P0*l_m)/(R0^2 + norm(d)*R_m));
 
-I = P0_n'*u*(T1-norm(d)*(T2-T3))
+I = P0_n'*u*(T1-norm(d)*(T2-T3));
 
 figure();
 FC = [1 1 1];
