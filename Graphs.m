@@ -1,11 +1,11 @@
 
-clc;
+clc
 
 A = [1 0 0]';
 B = [0 1 0]';
-C = [0 1 1]';
+C = [1 1 0]';
 
-pnt = [0.5, -0.5, 0.5]'; 
+%pnt = [0.5, -0.5, 0.5]'; 
 
 V = [A'; B'; C';];
 F = [1 2 3;];
@@ -35,9 +35,11 @@ Z = z0+v1(3,1)*P+v2(3,1)*Q;
 %surf(X,Y,Z)
 
 
+l_mm = C;
 l_pp = B;
-l_mm = A;
-r = pnt;
+
+r = [0.5, 2, 0]';
+r(2)
 
 r_p = l_pp;
 r_m = l_mm;
@@ -51,13 +53,28 @@ l = (rho_p-rho_m)/norm(rho_p-rho_m);
 
 u = cross(l, n);
 
-l_p = (rho_p-rho)'*l
-l_m = (rho_m-rho)'*l
-
-%P0 = (rho_p-rho)-l_p*l
+l_p = (rho_p-rho)'*l;
+l_m = (rho_m-rho)'*l;
 
 d = -n'*(r-l_mm)*n;
 
+P0 = norm((rho_p-rho)'*u);
+P0_n = ((rho_p-rho)-l_p*l)/P0;
+
+R0 = sqrt(P0^2 + norm(d)^2);
+
+P_p = norm(rho_p-rho);
+P_m = norm(rho_m-rho);
+
+R_p = sqrt(P_p^2 + norm(d)^2); 
+R_m = sqrt(P_m^2 + norm(d)^2); 
+
+% Integral terms calculation
+T1 = P0*log((R_p+l_p)/(R_m+l_m));
+T2 = atan((P0*l_p)/(R0^2 + norm(d)*R_p));
+T3 = atan((P0*l_m)/(R0^2 + norm(d)*R_m));
+
+I = P0_n'*u*(T1-norm(d)*(T2-T3))
 
 figure();
 FC = [1 1 1];
@@ -77,7 +94,7 @@ plot3(C(1), C(2), C(3), 'om')
 
 %plot3([A(1), n(1)+A(1)], [A(2), n(2)+A(2)], [A(3), n(3)+A(3)], 'r')
 plot3(Op(1), Op(2), Op(3), 'ok', 'MarkerFaceColor', 'none')
-plot3(pnt(1), pnt(2), pnt(3), 'r', 'Marker', 'hexagram', 'MarkerFaceColor', 'r')
+plot3(r(1), r(2), r(3), 'r', 'Marker', 'hexagram', 'MarkerFaceColor', 'r')
 %plot3(pnt_p(1)+Op, pnt_p(2)+Op, pnt_p(3)+Op, 'r', 'Marker', 'hexagram', 'MarkerFaceColor', 'none')
 
 plot3([0, n(1)], [0, n(2)], [0, n(3)], ':r')
@@ -94,6 +111,12 @@ plot3([Op(1), rho(1)+Op(1)], [Op(2), rho(2)+Op(2)], [Op(3), rho(3)+Op(3)], '-.r'
 %plot3([pnt_p(1), d(1)+pnt_p(1)], [pnt_p(2), d(2)+pnt_p(2)], [pnt_p(3), d(3)+pnt_p(3)], '-.k')
 plot3([r(1), d(1)+r(1)], [r(2), d(2)+r(2)], [r(3), d(3)+r(3)], '-.k')
 plot3(rho(1)+Op(1), rho(2)+Op(2), rho(3)+Op(3), 'r', 'Marker', 'hexagram', 'MarkerFaceColor', 'none')
+
+%plot3([r(1), d(1)+r(1)], [r(2), d(2)+r(2)], [r(3), d(3)+r(3)], '-.k')
+%plot3([rho(1), P0(1)+rho(1)], [rho(2), P0(2)+rho(2)], [rho(3), P0(3)+rho(3)], '--g')
+%plot3([0, P0(1)], [0, P0(2)], [0, P0(3)], '--g')
+%plot3([P0_n(1)+Op(1)], [P0_n(2)+Op(2)], [P0_n(3)+Op(3)], 'sb')
+plot3([rho(1)+Op(1), P0_n(1)+rho(1)+Op(1)], [rho(2)+Op(2), P0_n(2)+rho(2)+Op(2)], [rho(3)+Op(3), P0_n(3)+rho(3)+Op(3)], ':b')
 
 patch('Faces',F,'Vertices',V, 'FaceColor', FC)
 
