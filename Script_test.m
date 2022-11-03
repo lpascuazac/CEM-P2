@@ -6,14 +6,14 @@ clc;
 
 %obj = readObj('examples\example10.obj')
 
-obj = readObj('Test_shapes\Surf_1.obj')
+obj = readObj('Test_shapes\Surf_4.obj')
 %obj = readObj('Test_shapes\Surf_2.obj')
 %obj = readObj('Test_shapes\Surf_4.obj')
 
 %OBJ = read_wobj('examples\example1.obj')
 
 V = obj.v(:, 1:3);
-F = [obj.f.v, obj.f.v(:, 1)]; 
+F = [obj.f.v]; 
 
 
 %[x y] = meshgrid(-1:0.1:1); % Generate x and y data
