@@ -57,30 +57,31 @@ for jj = 1:size(R,2)
     end
 end
 
-Q = 1/size(F,2);
+Q = 1;
+dq = Q/size(F,2);
 rRing = 4.5e-3;
 rDisk = 20e-3;
 
 vRing = 1./sqrt(rRing^2+R(3, :).^2');
 sigma = 58.108*1e7;
-vDisk = 1./sqrt(rDisk^2+R(3, :).^2');
-
+vDisk = Q*ke*log(abs(rDisk+sqrt(rDisk^2+R(3, :)'.^2))./(abs(R(3, :)')));
+%vDisk = 1./sqrt(rDisk^2+R(3, :).^2');
 
 figure()
 hold on
-plot(R(3, :)', Q*Icalc, '.:b', 'LineWidth', 1.5)
+plot(R(3, :)', dq*Icalc, '.:b', 'LineWidth', 1.5)
 plot(R(3, :)', vDisk, '--r', 'LineWidth', 1.5)
 legend("Calc.", "1/r ref.")
 axis padded
 grid on;
 grid minor;
 xlabel("r distance [m]")
-ylabel("Integral [(dS/R)*(1/#Triangles)]")
+ylabel("Voltage [V]")
 
 %%
 figure()
 hold on
-plot(R(3, :)', 1*Icalc*Q)
+plot(R(3, :)', 1*Icalc*dq)
 plot(R(3, :)', 1*1./R(3, :)')
 
 
