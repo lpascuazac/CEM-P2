@@ -1,6 +1,6 @@
 clc; close all;
 
-obj = readObj('Test_shapes\Surf_5.obj');
+obj = readObj('Test_shapes\Disk.obj');
 
 V = obj.v(:, 1:3)';
 F = [obj.f.v]';
@@ -10,7 +10,7 @@ ke = 1/(4*pi*epsilon_0);
 
 r = [0, 0, 1000]';
 
-R = [zeros(100, 1), zeros(100, 1), linspace(5, 100, 100)']';
+R = [zeros(100, 1), zeros(100, 1), linspace(10,100, 100)']';
 
 FC = [1 1 1];
 
@@ -58,11 +58,18 @@ for jj = 1:size(R,2)
 end
 
 Q = 1/size(F,2);
+rRing = 4.5e-3;
+rDisk = 20e-3;
+
+vRing = 1./sqrt(rRing^2+R(3, :).^2');
+sigma = 58.108*1e7;
+vDisk = 1./sqrt(rDisk^2+R(3, :).^2');
+
 
 figure()
 hold on
 plot(R(3, :)', Q*Icalc, '.:b', 'LineWidth', 1.5)
-plot(R(3, :)', 1./R(3, :)', '--r', 'LineWidth', 1.5)
+plot(R(3, :)', vDisk, '--r', 'LineWidth', 1.5)
 legend("Calc.", "1/r ref.")
 axis padded
 grid on;
