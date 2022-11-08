@@ -10,7 +10,7 @@ shape = 'Sphere';
 Q = 1;
 radius = 5;
 arguments = [Q, radius];
-obj = readObj('Shapes\Surf_5.obj');
+obj = readObj('Shapes\Disk.obj');
 
 % --- Define the observation points
 r = [0, 0, 100]';

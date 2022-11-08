@@ -81,6 +81,6 @@ I = [P0_n(:,1)'*u(:,1)*(T1(:,1)-norm(d(:,1))*(T2(:,1)-T3(:,1))),...
 
 % --- Finally the sum of the results of the apport of each triangle segment
 
-I_sum = sum(I);
+I_sum = 2*sum(I)/norm(cross(v1,v2));
 
 end
