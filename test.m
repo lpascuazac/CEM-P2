@@ -1,4 +1,4 @@
-clc; close all; clear;
+clc; close all; clear; tStart = cputime;
 
 % Input Paramenters
 % --- Define the geometry
@@ -84,5 +84,7 @@ grid on;
 grid minor;
 xlabel("r distance [m]")
 ylabel("Voltage [V]"),
-title(" Results Comparison")
+title("Results Comparison")
 
+simulationTime = cputime - tStart;
+disp("Simulation time: "+num2str(simulationTime)+" s")
