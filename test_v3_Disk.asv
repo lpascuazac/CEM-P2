@@ -1,0 +1,77 @@
+clc; close all; clear;
+
+% Input Paramenters
+% --- Define the geometry
+% --- Charge Q
+% --- Geometry Arguments
+% --- Geometry File
+
+shape = 'Disk';
+Q = 1;
+rDisk = 20e-3;
+arguments = [Q, rDisk];
+obj = readObj('Shapes\Disk.obj');
+
+% --- Define the observation points
+r = [0, 0, 100]';
+R = [zeros(100, 1), zeros(100, 1), linspace(10,100, 100)']';
+
+
+% --- Get the .obj file parameters
+meshVertices = obj.v(:, 1:3)';
+faces = [obj.f.v]';
+
+A = [meshVertices(:, faces(1,:))];
+B = [meshVertices(:, faces(2,:))];
+C = [meshVertices(:, faces(3,:))];
+
+Icalc = zeros(size(R,2), 1);
+
+for jj = 1:size(R,2)
+    for ii=1:size(A, 2)
+        Icalc(jj, :) = Icalc(jj, :) + computeIntegral(R(:, jj), A(:,ii), B(:,ii), C(:,ii));
+    end
+end
+
+theoricVoltage = computeTheoricV(R(:,3)',shape,[Q,rDisk]); 
+dq = Q/size(faces,2);
+
+
+figure();
+subplot(2, 2, 1)
+hold on;
+patch('Faces',faces','Vertices',meshVertices', 'FaceColor', [1 1 1])
+view([45 35.264]);
+axis image
+grid on;
+grid minor;
+xlabel('x-axis')
+ylabel('y-axis')
+zlabel('z-axis')
+title("Shape: "+string(size(faces,2)) + " triangles")
+
+subplot(2, 2, 2)
+hold on;
+
+patch('Faces',faces','Vertices',meshVertices', 'FaceColor', [1 1 1])
+plot3([R(1,1), R(1,end)], [R(2,1), R(2,end)], [R(3,1), R(3,end)], '-or', 'MarkerFaceColor', 'r')
+view([45 35.264]);
+axis image
+grid on;
+grid minor;
+title('Observation Points')
+xlabel('x-axis')
+ylabel('y-axis')
+zlabel('z-axis')
+
+subplot(2,2,[3,4])
+hold on
+plot(R(3, :)', dq*ke*Icalc, '.:b', 'LineWidth', 1.5)
+plot(R(3, :)', vDisk, '--r', 'LineWidth', 1.5)
+legend("Result", "Theoric")
+axis padded
+grid on;
+grid minor;
+xlabel("r distance [m]")
+ylabel("Voltage [V]")
+

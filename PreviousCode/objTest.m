@@ -2,13 +2,13 @@
  copyfile(fullfile(matlabroot,'toolbox','shared','cmlink','git','auxiliary_files', ...
 'mwgitattributes'),fullfile(pwd,'.gitattributes'))
 %}
-clc;
+clc; clear; close all; 
 
 %obj = readObj('examples\example10.obj')
 
-obj = readObj('Test_shapes\Surf_4.obj')
-%obj = readObj('Test_shapes\Surf_2.obj')
-%obj = readObj('Test_shapes\Surf_4.obj')
+obj = readObj('Shapes\Surf_4.obj');
+%obj = readObj('Shapes\Surf_2.obj')
+%obj = readObj('Shapes\Surf_4.obj')
 
 %OBJ = read_wobj('examples\example1.obj')
 

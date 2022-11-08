@@ -1,9 +1,23 @@
-function [I_sum] = triang_int(r, A, B, C)
+function [I_sum] = computeIntegral(r, A, B, C)
+% --- Here it is computed the integral equation from a uniform source
+% --- distribution, due to a triangular mesh grid
 
+% Define reference vectors
 v1 = B-A;
 v2 = C-B;
 
+% Compute normal vector
 n = cross(v1, v2)/norm(cross(v1, v2));
+
+% Define: 
+% - The positive and negative sections of the segment of each triangle
+% - The position vectors (r)
+% - The pojection of the position vectors (rho)
+% - The paralell vector to the segment C (l)
+% - The normal vector to l (u)
+% - The distance from the observation point to the plane of each triangle (d)
+% - The vectors P0 and R0
+% - The distance P, P+- and R, R+-
 
 l_mm = [A, B, C];
 l_pp = [B, C, A];
@@ -16,7 +30,6 @@ rho_m = r_m - n*(n'*r_m);
 
 rho = r - n*(n'*r);
 
-%l = (rho_p-rho_m)/norm(rho_p-rho_m)
 l = [(rho_p(:,1)-rho_m(:,1))/norm(rho_p(:,1)-rho_m(:,1)),...
     (rho_p(:,2)-rho_m(:,2))/norm(rho_p(:,2)-rho_m(:,2)),...
     (rho_p(:,3)-rho_m(:,3))/norm(rho_p(:,3)-rho_m(:,3))];
@@ -49,7 +62,7 @@ R_m = [sqrt(P_m(:,1)^2 + norm(d(:,1))^2),...
     sqrt(P_m(:,2)^2 + norm(d(:,2))^2),...
     sqrt(P_m(:,3)^2 + norm(d(:,3))^2)];
 
-% Integral terms calculation
+% --- Calculation of terms involved in the integral
 T1 = [P0(:,1)*log((R_p(:,1)+l_p(:,1))/(R_m(:,1)+l_m(:,1))),...
     P0(:,2)*log((R_p(:,2)+l_p(:,2))/(R_m(:,2)+l_m(:,2))),...
     P0(:,3)*log((R_p(:,3)+l_p(:,3))/(R_m(:,3)+l_m(:,3)))];
@@ -65,6 +78,8 @@ T3 = [atan((P0(:,1)*l_m(:,1))/(R0(:,1)^2 + norm(d(:,1))*R_m(:,1))),...
 I = [P0_n(:,1)'*u(:,1)*(T1(:,1)-norm(d(:,1))*(T2(:,1)-T3(:,1))),...
     P0_n(:,2)'*u(:,2)*(T1(:,2)-norm(d(:,2))*(T2(:,2)-T3(:,2))),...
     P0_n(:,3)'*u(:,3)*(T1(:,3)-norm(d(:,3))*(T2(:,3)-T3(:,3)))];
+
+% --- Finally the sum of the results of the apport of each triangle segment
 
 I_sum = sum(I);
 
