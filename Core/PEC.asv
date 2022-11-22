@@ -3,14 +3,15 @@ classdef PEC
         file
         name
         element
-        characteristics
+        normal
+        p1,p2,p3
     end
 
     methods
         
-    function obj = PEC(file,characteristics)
+    function obj = PEC(file)
             obj.file = file;
-            obj.characteristics = characteristics;
+            
             body = readObj(obj.file);
              
             obj.element.v = body.v; obj.element.vt = body.vt; 
@@ -131,57 +132,47 @@ classdef PEC
 
 end
     
-    function V = computeTheoricalV(obj, observationPoint)
+    function V = computeTheoricalV(~,observationPoint,shape,characteristics)
         % --- Here it is computed the theoric potencial from an analytic result
         % --- Some simple geometries have defined potencial equations, hence
         % --- they work as a validation result from the computacional process.        
-        epsilon_0 = 8.8541878128E-12;
-        ke = 1/(4*pi*epsilon_0);
-        Q = obj.characteristics.charge;
-        switch(obj.characteristics.shape)
-            case 'Sphere'
-                R = obj.characteristics.radius;
-                if min(observationPoint)>R
-                    V = ke*Q./observationPoint;
-                else
-                    V = ke*Q/R;
-                    warning("Some observation points are inside the sphere.")
-                end
-            case 'Disk'
-                R = obj.characteristics.radius;
-                sigma = Q/(2*pi*R^2);
-                %vDisk = Q*ke*log(abs(rDisk+sqrt(rDisk^2+R(3, :)'.^2))./(abs(R(3, :)')));
-                V = 2*pi*ke*sigma*(sqrt(R^2+observationPoint.^2')-abs(observationPoint'));
-            case 'infPlane'
-                A = obj.characteristics.area;
-                sigma = Q/A;
-                V = -sigma*observationPoint/(2*epsilon_0);
-            case 'Ring'
-                R = obj.characteristics.radius;
-                V = ke*Q./sqrt(R^2+observationPoint.^2');
-            otherwise
-                disp('The entered figure does not have an analytical formula for the potential defined.')
-        end
+            epsilon_0 = 8.8541878128E-12;
+            ke = 1/(4*pi*epsilon_0);
+            Q = characteristics.charge;
+            switch(shape)
+                case 'Sphere'
+                    R = characteristics.radius;
+                    if min(observationPoint)>R
+                        V = ke*Q./observationPoint;
+                    else
+                        V = ke*Q/R;
+                        warning("Some observation points are inside the sphere.")
+                    end
+                case 'Disk'
+                    R = characteristics.radius;
+                    sigma = Q/(2*pi*R^2);
+                    %vDisk = Q*ke*log(abs(rDisk+sqrt(rDisk^2+R(3, :)'.^2))./(abs(R(3, :)')));
+                    V = 2*pi*ke*sigma*(sqrt(R^2+observationPoint.^2')-abs(observationPoint'));
+                case 'infPlane'
+                    A = characteristics.area;
+                    sigma = Q/A;
+                    V = -sigma*observationPoint/(2*epsilon_0);
+                case 'Ring'
+                    R = characteristics(2);
+                    V = ke*Q./sqrt(R^2+observationPoint.^2');
+                otherwise
+                    disp('The entered figure does not have an analytical formula for the potential defined.')
+            end
     end
     
-    function [] = plotResultPotencial(obj, observationPoint)
+    function [] = plotResultPotencial(obj)
         % --- Graphics
-        meshVertices = obj.element.v(:, 1:3)';
-        faces = [obj.element.f.v];
-
-        epsilon_0 = 8.8541878128E-12;
-        ke = 1/(4*pi*epsilon_0);
-
-        theoricVoltage = obj.computeTheoricalV(observationPoint(3,:)); 
-        dq = obj.characteristics.charge/size(faces,2);
-        Icalc = obj.computeIntegral(observationPoint);
-        computePotencial = dq*ke*Icalc;
 
         % ------ Shape
-        figure('Name',obj.file);
+        figure('Name','Simulation');
         subplot(2, 2, 1)
         hold on;
-        patch('Faces',faces,'Vertices',meshVertices', 'FaceColor', [1 1 1])
+        patch('Faces',faces','Vertices',meshVertices', 'FaceColor', [1 1 1])
         view([45 35.264]);
         axis image
         grid on;
@@ -194,10 +185,8 @@ end
         % ------ Observation points
         subplot(2, 2, 2)
         hold on;
-        patch('Faces',faces,'Vertices',meshVertices', 'FaceColor', [1 1 1])
-        plot3([observationPoint(1,1), observationPoint(1,end)], ...
-                [observationPoint(2,1), observationPoint(2,end)], ...
-                [observationPoint(3,1), observationPoint(3,end)], '-or', 'MarkerFaceColor', 'r')
+        patch('Faces',faces','Vertices',meshVertices', 'FaceColor', [1 1 1])
+        plot3([R(1,1), R(1,end)], [R(2,1), R(2,end)], [R(3,1), R(3,end)], '-or', 'MarkerFaceColor', 'r')
         view([45 35.264]);
         axis image
         grid on;
@@ -210,8 +199,8 @@ end
         % ------ Results Comparison
         subplot(2,2,[3,4])
         hold on
-        plot(observationPoint(3, :)', computePotencial, '.:b', 'LineWidth', 1.5)
-        plot(observationPoint(3, :)', theoricVoltage, '--r', 'LineWidth', 1.5)
+        plot(R(3, :)', computePotencial, '.:b', 'LineWidth', 1.5)
+        plot(R(3, :)', theoricVoltage, '--r', 'LineWidth', 1.5)
         legend("Result", "Theoric")
         axis padded
         grid on;
@@ -221,5 +210,4 @@ end
         title("Results Comparison")
     end
     end
-
 end
