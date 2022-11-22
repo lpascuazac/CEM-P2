@@ -189,7 +189,7 @@ end
         xlabel('x-axis [m]')
         ylabel('y-axis [m]')
         zlabel('z-axis [m]')
-        title("Shape: "+string(size(faces,2)) + " triangles")
+        title("Shape: "+string(size(faces',2)) + " triangles")
         
         % ------ Observation points
         subplot(2, 2, 2)

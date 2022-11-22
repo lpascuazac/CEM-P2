@@ -35,8 +35,19 @@ classdef Simulation
         end
         
         function capMatrix = computeCapacitanceMatrix(obj)
-            
-            capMatrix = 2;
+            capMatrix = zeros(length(obj.elements.("body1").element.f.v(:,1)), ...
+                              length(obj.elements.("body1").element.f.v(:,1)));
+            R = [zeros(100, 1), zeros(100, 1), linspace(10,100, 100)']';
+            for jj = 1:size(capMatrix,2)
+                for ii=1:size(capMatrix, 2)
+                    if ii == jj
+                        capMatrix(ii, jj) = obj.elements.body1.computeIntegral(R(:,1));
+                    else
+                        capMatrix(ii, jj) = obj.elements.body1.computeIntegral(R(:,1))/1;
+                    end
+                end
+            end
+
         end
     
     end

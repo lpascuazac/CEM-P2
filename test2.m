@@ -31,4 +31,4 @@ characteristics.body2 = body1;
 
 simulation = Simulation('Probe Shapes',characteristics);
 simulation.patchElements()
-
+cap = simulation.computeCapacitanceMatrix();
