@@ -2,7 +2,7 @@ classdef PEC
     properties
         file
         name
-        element
+        body
         characteristics
     end
 
@@ -11,10 +11,10 @@ classdef PEC
     function obj = PEC(file,characteristics)
             obj.file = file;
             obj.characteristics = characteristics;
-            body = readObj(obj.file);
-             
-            obj.element.v = body.v; obj.element.vt = body.vt; 
-            obj.element.vn = body.vn; obj.element.f = body.f;
+            obj.body = readObj(obj.file);
+            
+%             obj.element.v = body.v; obj.element.vt = body.vt; 
+%             obj.element.vn = body.vn; obj.element.f = body.f;
         
     end
         
@@ -24,8 +24,8 @@ classdef PEC
         Icompute = zeros(size(observationPoint,2), 1);
 
         % Define reference vectors
-        meshVertices = obj.element.v(:, 1:3)';
-        faces = [obj.element.f.v]';
+        meshVertices = obj.body.v(:, 1:3)';
+        faces = [obj.body.f.v]';
 
         % --- Compute the vertices of each triangle
         A = [meshVertices(:, faces(1,:))];
@@ -33,22 +33,16 @@ classdef PEC
         C = [meshVertices(:, faces(3,:))];
 
         R = observationPoint;
-        
-        while 1
+        %while 1
             for jj = 1:size(observationPoint,2)
                 for ii=1:size(A, 2)
                     Icompute(jj, :) = Icompute(jj, :) + obj.computeOneIntegral(R(:, jj), A(:,ii), B(:,ii), C(:,ii));
                 end
             end
-            if ~find(isnan(Icompute))
-                R = R+1e-6;
-            else
-                break;
-            end
-        end
+        %end
     end
         
-    function Isum = computeOneIntegral(~, observationPoint, A, B, C)
+    function Isum = computeOneIntegral(~, r, A, B, C)
         v1 = B-A;  
         v2 = C-B;
         
@@ -74,7 +68,7 @@ classdef PEC
         rho_p = r_p - n*(n'*r_p);
         rho_m = r_m - n*(n'*r_m);
         
-        rho = observationPoint - n*(n'*observationPoint);
+        rho = r - n*(n'*r);
         
         l = [(rho_p(:,1)-rho_m(:,1))/norm(rho_p(:,1)-rho_m(:,1)),...
             (rho_p(:,2)-rho_m(:,2))/norm(rho_p(:,2)-rho_m(:,2)),...
@@ -85,7 +79,7 @@ classdef PEC
         l_p = [(rho_p(:,1)-rho)'*l(:,1), (rho_p(:,2)-rho)'*l(:,2), (rho_p(:,3)-rho)'*l(:,3)];
         l_m = [(rho_m(:,1)-rho)'*l(:,1), (rho_m(:,2)-rho)'*l(:,2), (rho_m(:,3)-rho)'*l(:,3)];
         
-        d = [-n'*(observationPoint(:,1)-l_mm(:,1))*n, -n'*(observationPoint-l_mm(:,2))*n, -n'*(observationPoint-l_mm(:,2))*n];
+        d = [-n'*(r(:,1)-l_mm(:,1))*n, -n'*(r-l_mm(:,2))*n, -n'*(r-l_mm(:,2))*n];
         
         P0 = [norm((rho_p(:,1)-rho)'*u(:,1)), norm((rho_p(:,2)-rho)'*u(:,2)), norm((rho_p(:,3)-rho)'*u(:,3))];
         
@@ -166,14 +160,15 @@ end
     
     function [] = plotResultPotencial(obj, observationPoint)
         % --- Graphics
-        meshVertices = obj.element.v(:, 1:3)';
-        faces = [obj.element.f.v];
+        meshVertices = obj.body.v(:, 1:3)';
+        faces = [obj.body.f.v];
 
         epsilon_0 = 8.8541878128E-12;
         ke = 1/(4*pi*epsilon_0);
 
         theoricVoltage = obj.computeTheoricalV(observationPoint(3,:)); 
-        dq = obj.characteristics.charge/size(faces,2);
+        
+        dq = obj.characteristics.charge/size(faces,1);
         Icalc = obj.computeIntegral(observationPoint);
         computePotencial = dq*ke*Icalc;
 
