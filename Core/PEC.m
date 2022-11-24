@@ -2,30 +2,72 @@ classdef PEC
     properties
         file
         name
-        body
+        geometry
         characteristics
+        epsilon_0
+        ke 
     end
 
     methods
         
     function obj = PEC(file,characteristics)
             obj.file = file;
+            obj.epsilon_0  = 8.8541878128E-12;
+            obj.ke = 1/(4*pi*obj.epsilon_0);
             obj.characteristics = characteristics;
-            obj.body = readObj(obj.file);
+            obj.geometry = readObj(obj.file);
             
 %             obj.element.v = body.v; obj.element.vt = body.vt; 
 %             obj.element.vn = body.vn; obj.element.f = body.f;
         
     end
+    
+    function voltage = computeVoltage(obj, observationPoint)
+        Icalc = obj.computeIntegral(observationPoint, "unitCharge");
+        dq = obj.characteristics.charge/size(obj.geometry.f.v,1);
+        voltage = dq*obj.ke*Icalc;
+    end
+
+    function voltage = computeTheoricalVoltage(obj, observationPoint)
+        % --- Here it is computed the theoric potencial from an analytic result
+        % --- Some simple geometries have defined potencial equations, hence
+        % --- they work as a validation result from the computacional process.        
         
-    function Icompute = computeIntegral(obj, observationPoint)
+        Q = obj.characteristics.charge;
+        switch(obj.characteristics.shape)
+            case 'Sphere'
+                R = obj.characteristics.radius;
+                if min(observationPoint)>R
+                    voltage = obj.ke*Q./observationPoint;
+                else
+                    voltage = obj.ke*Q/R;
+                    warning("Some observation points are inside the sphere.")
+                end
+            case 'Disk'
+                R = obj.characteristics.radius;
+                sigma = Q/(2*pi*R^2);
+                %vDisk = Q*obj.ke*log(abs(rDisk+sqrt(rDisk^2+R(3, :)'.^2))./(abs(R(3, :)')));
+                voltage = 2*pi*obj.ke*sigma*(sqrt(R^2+observationPoint.^2')-abs(observationPoint'));
+            case 'infPlane'
+                A = obj.characteristics.area;
+                sigma = Q/A;
+                voltage = -sigma*observationPoint/(2*obj.epsilon_0);
+            case 'Ring'
+                R = obj.characteristics.radius;
+                voltage = obj.ke*Q./sqrt(R^2+observationPoint.^2');
+            otherwise
+                disp('The entered figure does not have an analytical formula for the potential defined.')
+        end
+    end
+    
+    function Icompute = computeIntegral(obj, observationPoint, format)
     % --- Here it is computed the integral equation from a uniform source
     % --- distribution, due to a triangular mesh grid
         Icompute = zeros(size(observationPoint,2), 1);
 
         % Define reference vectors
-        meshVertices = obj.body.v(:, 1:3)';
-        faces = [obj.body.f.v]';
+        meshVertices = obj.geometry.v(:, 1:3)';
+        faces = [obj.geometry.f.v]';
 
         % --- Compute the vertices of each triangle
         A = [meshVertices(:, faces(1,:))];
@@ -36,13 +78,14 @@ classdef PEC
         %while 1
             for jj = 1:size(observationPoint,2)
                 for ii=1:size(A, 2)
-                    Icompute(jj, :) = Icompute(jj, :) + obj.computeOneIntegral(R(:, jj), A(:,ii), B(:,ii), C(:,ii));
+                    Icompute(jj, :) = Icompute(jj, :) + ...
+                        obj.computeOneIntegral(R(:, jj), A(:,ii), B(:,ii), C(:,ii), format);
                 end
             end
         %end
     end
         
-    function Isum = computeOneIntegral(~, r, A, B, C)
+    function Isum = computeOneIntegral(~, r, A, B, C, format)
         v1 = B-A;  
         v2 = C-B;
         
@@ -120,57 +163,23 @@ classdef PEC
             P0_n(:,3)'*u(:,3)*(T1(:,3)-norm(d(:,3))*(T2(:,3)-T3(:,3)))];
         
         % --- Finally the sum of the results of the apport of each triangle segment
-        
-        Isum = 2*sum(I)/norm(cross(v1,v2));
-
-end
-    
-    function V = computeTheoricalV(obj, observationPoint)
-        % --- Here it is computed the theoric potencial from an analytic result
-        % --- Some simple geometries have defined potencial equations, hence
-        % --- they work as a validation result from the computacional process.        
-        epsilon_0 = 8.8541878128E-12;
-        ke = 1/(4*pi*epsilon_0);
-        Q = obj.characteristics.charge;
-        switch(obj.characteristics.shape)
-            case 'Sphere'
-                R = obj.characteristics.radius;
-                if min(observationPoint)>R
-                    V = ke*Q./observationPoint;
-                else
-                    V = ke*Q/R;
-                    warning("Some observation points are inside the sphere.")
-                end
-            case 'Disk'
-                R = obj.characteristics.radius;
-                sigma = Q/(2*pi*R^2);
-                %vDisk = Q*ke*log(abs(rDisk+sqrt(rDisk^2+R(3, :)'.^2))./(abs(R(3, :)')));
-                V = 2*pi*ke*sigma*(sqrt(R^2+observationPoint.^2')-abs(observationPoint'));
-            case 'infPlane'
-                A = obj.characteristics.area;
-                sigma = Q/A;
-                V = -sigma*observationPoint/(2*epsilon_0);
-            case 'Ring'
-                R = obj.characteristics.radius;
-                V = ke*Q./sqrt(R^2+observationPoint.^2');
+        switch (format)
+            case "unitCharge"
+                Isum = 2*sum(I)/norm(cross(v1,v2));
             otherwise
-                disp('The entered figure does not have an analytical formula for the potential defined.')
+                Isum = sum(I);
         end
-    end
+end
     
     function [] = plotResultPotencial(obj, observationPoint)
         % --- Graphics
-        meshVertices = obj.body.v(:, 1:3)';
-        faces = [obj.body.f.v];
+        meshVertices = obj.geometry.v(:, 1:3)';
+        faces = [obj.geometry.f.v];
 
-        epsilon_0 = 8.8541878128E-12;
-        ke = 1/(4*pi*epsilon_0);
+        theoricVoltage = obj.computeTheoricalVoltage(observationPoint(3,:)); 
 
-        theoricVoltage = obj.computeTheoricalV(observationPoint(3,:)); 
-        
-        dq = obj.characteristics.charge/size(faces,1);
-        Icalc = obj.computeIntegral(observationPoint);
-        computePotencial = dq*ke*Icalc;
+        computeVoltage = obj.computeVoltage(observationPoint(3,:));
+
 
         % ------ Shape
         figure('Name',obj.file);
@@ -205,7 +214,7 @@ end
         % ------ Results Comparison
         subplot(2,2,[3,4])
         hold on
-        plot(observationPoint(3, :)', computePotencial, '.:b', 'LineWidth', 1.5)
+        plot(observationPoint(3, :)', computeVoltage, '.:b', 'LineWidth', 1.5)
         plot(observationPoint(3, :)', theoricVoltage, '--r', 'LineWidth', 1.5)
         legend("Result", "Theoric")
         axis padded
