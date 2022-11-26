@@ -4,29 +4,46 @@ classdef PEC
         name
         geometry
         characteristics
+
         triangles
-        epsilon_0
-        ke 
+        areas
+        centers
+        vertex
+
     end
 
     methods
         
     function obj = PEC(file,characteristics)
             obj.file = file;
-            obj.epsilon_0  = 8.8541878128E-12;
-            obj.ke = 1/(4*pi*obj.epsilon_0);
             obj.characteristics = characteristics;
             obj.geometry = readObj(obj.file);
 
+            meshVertices = obj.geometry.v(:, 1:3)';
             faces = [obj.geometry.f.v]';
+            
             obj.triangles = size(faces,2);
+
+            obj.vertex.A = [meshVertices(:, faces(1,:))];
+            obj.vertex.B = [meshVertices(:, faces(2,:))];
+            obj.vertex.C = [meshVertices(:, faces(3,:))];
+            
+            obj.areas = zeros(obj.triangles,1);
+            for n=1:size(obj.vertex.A, 2)
+                v1 = obj.vertex.B(:,n)-obj.vertex.A(:,n);  
+                v2 = obj.vertex.C(:,n)-obj.vertex.B(:,n);
+                obj.areas(n) = norm(cross(v1,v2))/2;           
+            end
+            obj.centers = (obj.vertex.A + obj.vertex.B + obj.vertex.C)/3;
        
     end
     
     function voltage = computeVoltage(obj, observationPoint)
         Icalc = obj.computeIntegral(observationPoint, "unitCharge");
         dq = obj.characteristics.boundaryCondition/size(obj.geometry.f.v,1);
-        voltage = dq*obj.ke*Icalc;
+        epsilon_0  = 8.8541878128E-12;
+        ke = 1/(4*pi*epsilon_0);
+        voltage = dq*ke*Icalc;
     end
 
     function voltage = computeTheoricalVoltage(obj, observationPoint)
@@ -35,27 +52,30 @@ classdef PEC
         % --- they work as a validation result from the computacional process.        
         
         Q = obj.characteristics.boundaryCondition;
+        epsilon_0  = 8.8541878128E-12;
+        ke = 1/(4*pi*epsilon_0);
+
         switch(obj.characteristics.shape)
             case 'Sphere'
                 R = obj.characteristics.radius;
                 if min(observationPoint)>R
-                    voltage = obj.ke*Q./observationPoint;
+                    voltage = ke*Q./observationPoint;
                 else
-                    voltage = obj.ke*Q/R;
+                    voltage = ke*Q/R;
                     warning("Some observation points are inside the sphere.")
                 end
             case 'Disk'
                 R = obj.characteristics.radius;
                 sigma = Q/(2*pi*R^2);
                 %vDisk = Q*obj.ke*log(abs(rDisk+sqrt(rDisk^2+R(3, :)'.^2))./(abs(R(3, :)')));
-                voltage = 2*pi*obj.ke*sigma*(sqrt(R^2+observationPoint.^2')-abs(observationPoint'));
+                voltage = 2*pi*ke*sigma*(sqrt(R^2+observationPoint.^2')-abs(observationPoint'));
             case 'infPlane'
                 A = obj.characteristics.area;
                 sigma = Q/A;
-                voltage = -sigma*observationPoint/(2*obj.epsilon_0);
+                voltage = -sigma*observationPoint/(2*epsilon_0);
             case 'Ring'
                 R = obj.characteristics.radius;
-                voltage = obj.ke*Q./sqrt(R^2+observationPoint.^2');
+                voltage = ke*Q./sqrt(R^2+observationPoint.^2');
             otherwise
                 disp('The entered figure does not have an analytical formula for the potential defined.')
         end
@@ -76,23 +96,18 @@ classdef PEC
         C = [meshVertices(:, faces(3,:))];
 
         R = observationPoint;
-        %while 1
-            for jj = 1:size(observationPoint,2)
-                for ii=1:size(A, 2)
-                    %disp(R(:,jj));
-                    Icompute(jj, :) = Icompute(jj, :) + ...
-                        obj.computeOneIntegral(R(:, jj), A(:,ii), B(:,ii), C(:,ii), format);
-                end
+        for jj = 1:size(observationPoint,2)
+            for ii=1:size(A, 2)
+                Icompute(jj, :) = Icompute(jj, :) + ...
+                    obj.computeOneIntegral(R(:, jj), A(:,ii), B(:,ii), C(:,ii), format);
             end
-%             if find(isnan(Icompute))
-%                 R = R+1e-6;
-%             else
-%                 break;
-%             end
-%         end
+        end
     end
         
-    function Isum = computeOneIntegral(~, r, A, B, C, format)
+    function Isum = computeOneIntegral(~, observationPoint, A, B, C, format)
+
+        R = observationPoint;
+
         v1 = B-A;  
         v2 = C-B;
         
@@ -117,90 +132,76 @@ classdef PEC
         
         rho_p = r_p - n*(n'*r_p);
         rho_m = r_m - n*(n'*r_m);
-        
-        rho = r - n*(n'*r);
-        
-        l = [(rho_p(:,1)-rho_m(:,1))/norm(rho_p(:,1)-rho_m(:,1)),...
-            (rho_p(:,2)-rho_m(:,2))/norm(rho_p(:,2)-rho_m(:,2)),...
-            (rho_p(:,3)-rho_m(:,3))/norm(rho_p(:,3)-rho_m(:,3))];
-        
-        u = [cross(l(:,1), n), cross(l(:,2), n), cross(l(:,3), n)];
-        
-        l_p = [(rho_p(:,1)-rho)'*l(:,1), (rho_p(:,2)-rho)'*l(:,2), (rho_p(:,3)-rho)'*l(:,3)];
-        l_m = [(rho_m(:,1)-rho)'*l(:,1), (rho_m(:,2)-rho)'*l(:,2), (rho_m(:,3)-rho)'*l(:,3)];
-        
-        d = [-n'*(r(:,1)-l_mm(:,1))*n, -n'*(r-l_mm(:,2))*n, -n'*(r-l_mm(:,2))*n];
-        
-        P0 = [norm((rho_p(:,1)-rho)'*u(:,1)), norm((rho_p(:,2)-rho)'*u(:,2)), norm((rho_p(:,3)-rho)'*u(:,3))];
-        
-        P0_n = [((rho_p(:,1)-rho)-l_p(:,1)*l(:,1))/P0(:,1),...
-            ((rho_p(:,2)-rho)-l_p(:,2)*l(:,2))/P0(:,2),...
-            ((rho_p(:,3)-rho)-l_p(:,3)*l(:,3))/P0(:,3)];
-        
-        R0 = [sqrt(P0(:,1).^2 + norm(d(:,1))^2),...
-            sqrt(P0(:,2).^2 + norm(d(:,2))^2),...
-            sqrt(P0(:,3).^2 + norm(d(:,3))^2)];
-        
-        P_p = [norm(rho_p(:,1)-rho), norm(rho_p(:,2)-rho), norm(rho_p(:,3)-rho)];
-        P_m = [norm(rho_m(:,1)-rho), norm(rho_m(:,2)-rho), norm(rho_m(:,3)-rho)];
-        
-        R_p = [sqrt(P_p(:,1)^2 + norm(d(:,1))^2),...
-            sqrt(P_p(:,2)^2 + norm(d(:,2))^2),...
-            sqrt(P_p(:,3)^2 + norm(d(:,3))^2)];
-        
-        R_m = [sqrt(P_m(:,1)^2 + norm(d(:,1))^2),...
-            sqrt(P_m(:,2)^2 + norm(d(:,2))^2),...
-            sqrt(P_m(:,3)^2 + norm(d(:,3))^2)];
-        
-        % --- Calculation of terms involved in the integral
-        T1 = [P0(:,1)*log((R_p(:,1)+l_p(:,1))/(R_m(:,1)+l_m(:,1))),...
-            P0(:,2)*log((R_p(:,2)+l_p(:,2))/(R_m(:,2)+l_m(:,2))),...
-            P0(:,3)*log((R_p(:,3)+l_p(:,3))/(R_m(:,3)+l_m(:,3)))];
-        
-        T2 = [atan((P0(:,1)*l_p(:,1))/(R0(:,1)^2 + norm(d(:,1))*R_p(:,1))),...
-            atan((P0(:,2)*l_p(:,2))/(R0(:,2)^2 + norm(d(:,2))*R_p(:,2))),...
-            atan((P0(:,3)*l_p(:,3))/(R0(:,3)^2 + norm(d(:,3))*R_p(:,3)))];
-        
-        T3 = [atan((P0(:,1)*l_m(:,1))/(R0(:,1)^2 + norm(d(:,1))*R_m(:,1))),...
-            atan((P0(:,2)*l_m(:,2))/(R0(:,2)^2 + norm(d(:,2))*R_m(:,2))),...
-            atan((P0(:,3)*l_m(:,3))/(R0(:,3)^2 + norm(d(:,3))*R_m(:,3)))];
-        
-        I = [P0_n(:,1)'*u(:,1)*(T1(:,1)-norm(d(:,1))*(T2(:,1)-T3(:,1))),...
-            P0_n(:,2)'*u(:,2)*(T1(:,2)-norm(d(:,2))*(T2(:,2)-T3(:,2))),...
-            P0_n(:,3)'*u(:,3)*(T1(:,3)-norm(d(:,3))*(T2(:,3)-T3(:,3)))];
-        
-        % --- Finally the sum of the results of the apport of each triangle segment
-        switch (format)
-            case "unitCharge"
-                Isum = 2*sum(I)/norm(cross(v1,v2));
-            otherwise
-                Isum = sum(I);
+
+        while 1
+            
+            rho = R - n*(n'*R);
+            
+            l = [(rho_p(:,1)-rho_m(:,1))/norm(rho_p(:,1)-rho_m(:,1)),...
+                (rho_p(:,2)-rho_m(:,2))/norm(rho_p(:,2)-rho_m(:,2)),...
+                (rho_p(:,3)-rho_m(:,3))/norm(rho_p(:,3)-rho_m(:,3))];
+            
+            u = [cross(l(:,1), n), cross(l(:,2), n), cross(l(:,3), n)];
+            
+            l_p = [(rho_p(:,1)-rho)'*l(:,1), (rho_p(:,2)-rho)'*l(:,2), (rho_p(:,3)-rho)'*l(:,3)];
+            l_m = [(rho_m(:,1)-rho)'*l(:,1), (rho_m(:,2)-rho)'*l(:,2), (rho_m(:,3)-rho)'*l(:,3)];
+            
+            d = [-n'*(R(:,1)-l_mm(:,1))*n, -n'*(R-l_mm(:,2))*n, -n'*(R-l_mm(:,2))*n];
+            
+            P0 = [norm((rho_p(:,1)-rho)'*u(:,1)), norm((rho_p(:,2)-rho)'*u(:,2)), norm((rho_p(:,3)-rho)'*u(:,3))];
+            
+            P0_n = [((rho_p(:,1)-rho)-l_p(:,1)*l(:,1))/P0(:,1),...
+                ((rho_p(:,2)-rho)-l_p(:,2)*l(:,2))/P0(:,2),...
+                ((rho_p(:,3)-rho)-l_p(:,3)*l(:,3))/P0(:,3)];
+            
+            R0 = [sqrt(P0(:,1).^2 + norm(d(:,1))^2),...
+                sqrt(P0(:,2).^2 + norm(d(:,2))^2),...
+                sqrt(P0(:,3).^2 + norm(d(:,3))^2)];
+            
+            P_p = [norm(rho_p(:,1)-rho), norm(rho_p(:,2)-rho), norm(rho_p(:,3)-rho)];
+            P_m = [norm(rho_m(:,1)-rho), norm(rho_m(:,2)-rho), norm(rho_m(:,3)-rho)];
+            
+            R_p = [sqrt(P_p(:,1)^2 + norm(d(:,1))^2),...
+                sqrt(P_p(:,2)^2 + norm(d(:,2))^2),...
+                sqrt(P_p(:,3)^2 + norm(d(:,3))^2)];
+            
+            R_m = [sqrt(P_m(:,1)^2 + norm(d(:,1))^2),...
+                sqrt(P_m(:,2)^2 + norm(d(:,2))^2),...
+                sqrt(P_m(:,3)^2 + norm(d(:,3))^2)];
+            
+            % --- Calculation of terms involved in the integral
+            T1 = [P0(:,1)*log((R_p(:,1)+l_p(:,1))/(R_m(:,1)+l_m(:,1))),...
+                P0(:,2)*log((R_p(:,2)+l_p(:,2))/(R_m(:,2)+l_m(:,2))),...
+                P0(:,3)*log((R_p(:,3)+l_p(:,3))/(R_m(:,3)+l_m(:,3)))];
+            
+            T2 = [atan((P0(:,1)*l_p(:,1))/(R0(:,1)^2 + norm(d(:,1))*R_p(:,1))),...
+                atan((P0(:,2)*l_p(:,2))/(R0(:,2)^2 + norm(d(:,2))*R_p(:,2))),...
+                atan((P0(:,3)*l_p(:,3))/(R0(:,3)^2 + norm(d(:,3))*R_p(:,3)))];
+            
+            T3 = [atan((P0(:,1)*l_m(:,1))/(R0(:,1)^2 + norm(d(:,1))*R_m(:,1))),...
+                atan((P0(:,2)*l_m(:,2))/(R0(:,2)^2 + norm(d(:,2))*R_m(:,2))),...
+                atan((P0(:,3)*l_m(:,3))/(R0(:,3)^2 + norm(d(:,3))*R_m(:,3)))];
+            
+            I = [P0_n(:,1)'*u(:,1)*(T1(:,1)-norm(d(:,1))*(T2(:,1)-T3(:,1))),...
+                P0_n(:,2)'*u(:,2)*(T1(:,2)-norm(d(:,2))*(T2(:,2)-T3(:,2))),...
+                P0_n(:,3)'*u(:,3)*(T1(:,3)-norm(d(:,3))*(T2(:,3)-T3(:,3)))];
+            
+            % --- Finally the sum of the results of the apport of each triangle segment
+            switch (format)
+                case "unitCharge"
+                    Isum = 2*sum(I)/norm(cross(v1,v2));
+                otherwise
+                    Isum = sum(I);
+            end
+    
+            if isnan(Isum)
+                R = R + 1e-6;
+            else
+                break;
+            end
         end
     end
     
-    function areas = getTriangleAreas(obj)
-        meshVertices = obj.geometry.v(:, 1:3)';
-        faces = [obj.geometry.f.v]';
-
-        % --- Compute the vertices of each triangle
-        A = [meshVertices(:, faces(1,:))];
-        B = [meshVertices(:, faces(2,:))];
-        C = [meshVertices(:, faces(3,:))];
-        areas = zeros(obj.triangles,1);
-        for n=1:size(A, 2)
-                    %disp(R(:,jj));
-                    v1 = B(:,n)-A(:,n);  
-                    v2 = C(:,n)-B(:,n);
-                    areas(n) = norm(cross(v1,v2))/2;
-%                     Icompute(jj, :) = Icompute(jj, :) + ...
-%                         obj.computeOneIntegral(R(:, jj), A(:,ii), B(:,ii), C(:,ii), format);
-        end
-%         for n=1:obj.triangles
-%             v1 = B(:,n)-A(:,n);  
-%             v2 = C(:,n)-B(:,n);
-%             areas(n) = norm(cross(v1,v2))/2;
-%         end
-    end
     function [] = plotResultPotencial(obj, observationPoint)
         % --- Graphics
         meshVertices = obj.geometry.v(:, 1:3)';

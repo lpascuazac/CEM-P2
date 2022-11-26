@@ -4,28 +4,45 @@ classdef PEC
         name
         geometry
         characteristics
+
         triangles
-        epsilon_0
-        ke 
+        areas
+        centers
+
     end
 
     methods
         
     function obj = PEC(file,characteristics)
             obj.file = file;
-            obj.epsilon_0  = 8.8541878128E-12;
-            obj.ke = 1/(4*pi*obj.epsilon_0);
             obj.characteristics = characteristics;
             obj.geometry = readObj(obj.file);
 
+            meshVertices = obj.geometry.v(:, 1:3)';
             faces = [obj.geometry.f.v]';
+            
             obj.triangles = size(faces,2);
+
+            A = [meshVertices(:, faces(1,:))];
+            B = [meshVertices(:, faces(2,:))];
+            C = [meshVertices(:, faces(3,:))];
+            
+            obj.areas = zeros(obj.triangles,1);
+            for n=1:size(A, 2)
+                v1 = B(:,n)-A(:,n);  
+                v2 = C(:,n)-B(:,n);
+                obj.areas(n) = norm(cross(v1,v2))/2;           
+            end
+            obj.centers = (A + B + C)/3;
        
     end
     
     function voltage = computeVoltage(obj, observationPoint)
         Icalc = obj.computeIntegral(observationPoint, "unitCharge");
-        dq = obj.characteristics.charge/size(obj.geometry.f.v,1);
+        dq = obj.characteristics.boundaryCondition/size(obj.geometry.f.v,1);
+        epsilon_0  = 8.8541878128E-12;
+        ke = 1/(4*pi*epsilon_0);
+        
         voltage = dq*obj.ke*Icalc;
     end
 
@@ -34,7 +51,10 @@ classdef PEC
         % --- Some simple geometries have defined potencial equations, hence
         % --- they work as a validation result from the computacional process.        
         
-        Q = obj.characteristics.charge;
+        Q = obj.characteristics.boundaryCondition;
+        epsilon_0  = 8.8541878128E-12;
+        ke = 1/(4*pi*epsilon_0);
+
         switch(obj.characteristics.shape)
             case 'Sphere'
                 R = obj.characteristics.radius;
@@ -52,7 +72,7 @@ classdef PEC
             case 'infPlane'
                 A = obj.characteristics.area;
                 sigma = Q/A;
-                voltage = -sigma*observationPoint/(2*obj.epsilon_0);
+                voltage = -sigma*observationPoint/(2*epsilon_0);
             case 'Ring'
                 R = obj.characteristics.radius;
                 voltage = obj.ke*Q./sqrt(R^2+observationPoint.^2');
@@ -176,23 +196,8 @@ classdef PEC
             otherwise
                 Isum = sum(I);
         end
-end
-    
-    function areas = getTringleAreas(obj)
-        meshVertices = obj.geometry.v(:, 1:3)';
-        faces = [obj.geometry.f.v]';
-
-        % --- Compute the vertices of each triangle
-        A = [meshVertices(:, faces(1,:))];
-        B = [meshVertices(:, faces(2,:))];
-        C = [meshVertices(:, faces(3,:))];
-        areas = zeros(obj.triangles);
-        for n=1:obj.triangles
-            %disp(R(:,jj));
-            areas(jj, :) = Icompute(jj, :) + ...
-                obj.computeOneIntegral(R(:, jj), A(:,n), B(:,n), C(:,n), format);
-        end
     end
+    
     function [] = plotResultPotencial(obj, observationPoint)
         % --- Graphics
         meshVertices = obj.geometry.v(:, 1:3)';
