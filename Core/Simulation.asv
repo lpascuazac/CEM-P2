@@ -47,8 +47,9 @@ classdef Simulation
             A = rand(obj.totalTriangles);
             for i = 1:obj.totalTriangles
                 for j = 1:obj.totalTriangles
-                    A(i,j) = 2;
+                    
                 end
+
             end
 
             sigma = zeros(obj.totalTriangles, obj.elements);

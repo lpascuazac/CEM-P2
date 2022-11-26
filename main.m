@@ -32,12 +32,11 @@ clc; close all; clear; tStart = cputime;
  
 
 propertiesBody1.shape = 'Sphere';
-propertiesBody1.charge = 1;
+propertiesBody1.boundaryCondition = 1;
 propertiesBody1.radius = 4.2;
-characteristics.body2 = propertiesBody1;
 
 propertiesBody2.shape = 'Sphere';
-propertiesBody2.charge = -10;
+propertiesBody2.boundaryCondition = -1;
 propertiesBody2.radius = 4.2;
 
 characteristics.body1 = propertiesBody1;
@@ -47,7 +46,7 @@ simulation = Simulation('Probe Shapes',characteristics);
 simulation.patchElements()
 capacitanceMatrix = simulation.computeCapacitanceMatrix();
 
-disp(capacitanceMatrix)
+%disp(capacitanceMatrix)
 
 disp("Simulation time: "+num2str(cputime - tStart)+" s")
 
