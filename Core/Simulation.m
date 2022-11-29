@@ -3,9 +3,7 @@ classdef Simulation
         folder
         files
         bodies
-        elements
-        epsilon_0
-        ke 
+        elements 
         totalTriangles
     end
 
@@ -15,8 +13,6 @@ classdef Simulation
             obj.files = string({obj.files.name})';
             obj.folder = folder;
             obj.elements = length(obj.files);
-            obj.epsilon_0  = 8.8541878128E-12;
-            obj.ke = 1/(4*pi*obj.epsilon_0);
             obj.totalTriangles = 0;
             for i = 1:length(obj.files)
                 obj.bodies.("body"+i) = PEC(obj.folder+"\"+obj.files(i),characteristics.("body"+i));
@@ -41,13 +37,18 @@ classdef Simulation
             grid minor;
         end
         
-        function C = computeCapacitanceMatrix(obj)
+        function MoM = computeCapacitanceMatrix(obj)
+            e0  = 8.8541878128E-12;
+
             % Maxwell Capacitance Matrix
             areas = zeros(1, obj.totalTriangles);
             centers = zeros(3, obj.totalTriangles);
             vertex.A = zeros(3, obj.totalTriangles);
             vertex.B = zeros(3, obj.totalTriangles);
             vertex.C = zeros(3, obj.totalTriangles);
+            bodiesVoltage = zeros(obj.elements,1);
+            sigma = zeros(obj.totalTriangles, obj.elements);
+            Q = zeros(obj.elements);
 
             position = 0;
             % Get the centers and areas of all the simulation triangles
@@ -67,6 +68,8 @@ classdef Simulation
 
                 vertex.C(:,position+1:obj.bodies.("body"+M).triangles+position)...
                     = obj.bodies.("body"+M).vertex.C*1e-3;
+                
+                bodiesVoltage(M) = obj.bodies.("body"+M).characteristics.boundaryCondition;
 
                 position = obj.bodies.("body"+M).triangles;
             end
@@ -78,14 +81,12 @@ classdef Simulation
                 for n = 1:obj.totalTriangles
                     MoM(m,n) = obj.bodies.("body1")...
                         .computeOneIntegral(centers(:,m), ...
-                        vertex.A(:,n), vertex.B(:,n), vertex.C(:,n), "")/(4*pi*obj.epsilon_0);
+                        vertex.A(:,n), vertex.B(:,n), vertex.C(:,n), "")/(4*pi*e0);
                 end
             end
             
             % Compute charge density
 
-            sigma = zeros(obj.totalTriangles, obj.elements);
-            Q = zeros(obj.elements);
             position = 0;
             for M = 1:obj.elements
                 voltages = zeros(obj.totalTriangles,1);
@@ -97,56 +98,33 @@ classdef Simulation
 
             % Add the contribution of each area
             position = 0;
-            
-%             ii = 0;
-%             for M = 1:obj.elements
-%                 areas_aux(M,:) = [areas(ii+1:obj.bodies.("body"+M).triangles+ii)];
-%                 ii = obj.bodies.("body"+M).triangles;
-%             end
-%             
-%             disp(areas_aux)
-%             disp(size(areas_aux))
 
             for M = 1:obj.elements
                 for N = 1:obj.totalTriangles
                     a = zeros(obj.elements,obj.totalTriangles);
-                    a(1,position+1:obj.bodies.("body"+M).triangles+position) = ...
-                        areas(position+1:obj.bodies.("body"+M).triangles+position);
-                    a(2,position+1:obj.bodies.("body"+M).triangles+position) = ...
-                        areas(position+1:obj.bodies.("body"+M).triangles+position);
+                    a(:,position+1:obj.bodies.("body"+M).triangles+position) = ...
+                        repmat(areas(position+1:obj.bodies.("body"+M).triangles+position),obj.elements,1);
                 end
                 position = position + obj.bodies.("body"+M).triangles;
                 Q(:,M) = a(M,:)*sigma;
             end
-            
-            disp("Q")
-            disp(Q)
 
-            V = [1 0;0 1e-9];
+            disp("Charge Q")
+            disp(Q)
+            
+            V = diag(bodiesVoltage);
+            disp(V)
             C = V\Q;
-            disp("C")
+            disp("Maxwell Capacitance Matrix")
             disp(C)
 
-%             for n = 1:size(capMatrix,2)
-%                 for m = 1:size(capMatrix, 2)
-%                     chargeBodym = obj.bodies.("body"+m).characteristics.charge;
-%                     voltageBodyn = obj.bodies.("body"+n).computeVoltage(GND);
-%                         capMatrix(m, n) = chargeBodym/voltageBodyn;
-%                         %disp(obj.geometries.("body"+n).characteristics.charge)
-%                 end
-%             end
-
-            % Mutual capacitance
-           
-%             for n = 1:size(capMatrix,2)
-%                 for m = 1:size(capMatrix, 2)
-%                     charges(m) = obj.geometries.("body"+m).characteristics.charge;
-%                 end
-%                 voltageBodyn = obj.geometries.("body"+n).computeVoltage(GND);
-%                 disp(voltageBodyn)
-%                 capMatrix(:,n) = (charges/voltageBodyn)';
-%             end
-
+            writematrix(MoM,'Results/MoM_Matrix.csv','Delimiter','tab');
+            
+            if obj.elements == 2
+                fileID = fopen('Results/cap2.txt','w');
+                fprintf(fileID,"Two-electrode capacitance compute: "+num2str(abs(C(1,2)))+" F");
+                fclose(fileID);
+            end
 
         end
     

@@ -134,7 +134,6 @@ classdef PEC
         rho_m = r_m - n*(n'*r_m);
 
         while 1
-            
             rho = R - n*(n'*R);
             
             l = [(rho_p(:,1)-rho_m(:,1))/norm(rho_p(:,1)-rho_m(:,1)),...
@@ -192,10 +191,11 @@ classdef PEC
                     Isum = 2*sum(I)/norm(cross(v1,v2));
                 otherwise
                     Isum = sum(I);
+                    
             end
     
             if isnan(Isum)
-                R = R + 1e-6;
+                R = R + 1e-9;
             else
                 break;
             end
