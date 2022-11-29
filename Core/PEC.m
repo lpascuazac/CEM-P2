@@ -86,20 +86,14 @@ classdef PEC
     % --- distribution, due to a triangular mesh grid
         Icompute = zeros(size(observationPoint,2), 1);
 
-        % Define reference vectors
-        meshVertices = obj.geometry.v(:, 1:3)';
-        faces = [obj.geometry.f.v]';
-
-        % --- Compute the vertices of each triangle
-        A = [meshVertices(:, faces(1,:))];
-        B = [meshVertices(:, faces(2,:))];
-        C = [meshVertices(:, faces(3,:))];
-
         R = observationPoint;
+        disp(size(observationPoint,2))
+        disp(size(obj.vertex.A, 2))
         for jj = 1:size(observationPoint,2)
-            for ii=1:size(A, 2)
+            for ii=1:size(obj.vertex.A, 2)
                 Icompute(jj, :) = Icompute(jj, :) + ...
-                    obj.computeOneIntegral(R(:, jj), A(:,ii), B(:,ii), C(:,ii), format);
+                    obj.computeOneIntegral(R(:, jj), ...
+                    obj.vertex.A(:,ii), obj.vertex.B(:,ii), obj.vertex.C(:,ii), format);
             end
         end
     end

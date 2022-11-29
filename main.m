@@ -25,7 +25,7 @@ clc; close all; clear; tStart = cputime;
 % --- Geometry File
 
 propertiesBody1.shape = 'Sphere'; 
-propertiesBody1.charge = 1;
+propertiesBody1.boundaryCondition = 1;
 propertiesBody1.radius = 5;
 
 body1 = PEC('Shapes\Surf_5.obj',propertiesBody1);
