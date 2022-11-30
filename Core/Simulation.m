@@ -9,6 +9,8 @@ classdef Simulation
 
     methods    
         function obj = Simulation(folder, characteristics)
+            delete Results\*.txt Results\MoM_Matrix.csv       
+
             obj.files = dir(fullfile(folder,'*.obj'));
             obj.files = string({obj.files.name})';
             obj.folder = folder;
@@ -32,6 +34,10 @@ classdef Simulation
                 patch('Faces',F,'Vertices',V, 'FaceColor', FC)
             end
             view([45 35.264]);
+            title('Simulation'),
+            xlabel('Position [mm]')
+            ylabel('Position [mm]')
+            zlabel('Position [mm]')
             axis equal
             grid on;
             grid minor;
@@ -71,9 +77,9 @@ classdef Simulation
                 
                 bodiesVoltage(M) = obj.bodies.("body"+M).characteristics.boundaryCondition;
 
-                position = obj.bodies.("body"+M).triangles;
+                position = position + obj.bodies.("body"+M).triangles;
             end
-            
+
             % compute the MoM matrix
             MoM = zeros(obj.totalTriangles);
 
@@ -113,6 +119,7 @@ classdef Simulation
             disp(Q)
             
             V = diag(bodiesVoltage);
+            disp("Voltage V")
             disp(V)
             C = V\Q;
             disp("Maxwell Capacitance Matrix")

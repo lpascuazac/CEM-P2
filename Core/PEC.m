@@ -189,7 +189,7 @@ classdef PEC
             end
     
             if isnan(Isum)
-                R = R + 1e-9;
+                R = R - 1e-9;
             else
                 break;
             end

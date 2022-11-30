@@ -1,1 +1,0 @@
-Two-electrode capacitance compute: 1.2404e-13 F
