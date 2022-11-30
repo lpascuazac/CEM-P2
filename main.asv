@@ -1,0 +1,18 @@
+%% Probe
+clc; close all; clear;
+
+A = [5, 6, 7; 2,5 7; 1, 0, 2];
+B = A;
+
+index = 1:A(1)+1:size(A,2);
+B(index) = 8;
+C = sum(A,2);
+
+%% Multi-geometries simulation
+
+clc; close all; clear; tStart = cputime;
+simulation = Simulation('Simulation Shapes','InputParameters.txt');
+simulation.patchElements();
+capacitanceMatrix = simulation.computeCapacitanceMatrix();
+
+disp("Simulation time: "+num2str(cputime - tStart)+" s")

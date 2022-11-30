@@ -8,17 +8,20 @@ classdef Simulation
     end
 
     methods    
-        function obj = Simulation(folder, characteristics)
-            delete Results\*.txt Results\MoM_Matrix.csv       
+        function obj = Simulation(folder, inputParametersFiles)
+            delete Results\*.txt Results\*.csv       
+            
+            inputParameters = importdata(inputParametersFiles).data;
 
             obj.files = dir(fullfile(folder,'*.obj'));
             obj.files = string({obj.files.name})';
             obj.folder = folder;
             obj.elements = length(obj.files);
             obj.totalTriangles = 0;
-            for i = 1:length(obj.files)
-                obj.bodies.("body"+i) = PEC(obj.folder+"\"+obj.files(i),characteristics.("body"+i));
-                obj.totalTriangles = obj.totalTriangles + obj.bodies.("body"+i).triangles;
+            for m = 1:length(obj.files)
+                characteristics.boundaryCondition = inputParameters(m);
+                obj.bodies.("body"+m) = PEC(obj.folder+"\"+obj.files(m),characteristics);
+                obj.totalTriangles = obj.totalTriangles + obj.bodies.("body"+m).triangles;
             end
 
         end
@@ -43,7 +46,7 @@ classdef Simulation
             grid minor;
         end
         
-        function MoM = computeCapacitanceMatrix(obj)
+        function outputData = computeCapacitanceMatrix(obj)
             e0  = 8.8541878128E-12;
 
             % Maxwell Capacitance Matrix
@@ -90,7 +93,7 @@ classdef Simulation
                         vertex.A(:,n), vertex.B(:,n), vertex.C(:,n), "")/(4*pi*e0);
                 end
             end
-            
+
             % Compute charge density
 
             position = 0;
@@ -101,7 +104,8 @@ classdef Simulation
                 position = position + obj.bodies.("body"+M).triangles;
                 sigma(:,M) = MoM\voltages;
             end
-
+            
+            
             % Add the contribution of each area
             position = 0;
 
@@ -112,18 +116,38 @@ classdef Simulation
                         repmat(areas(position+1:obj.bodies.("body"+M).triangles+position),obj.elements,1);
                 end
                 position = position + obj.bodies.("body"+M).triangles;
+
+                % Compute Charge Matrix
                 Q(:,M) = a(M,:)*sigma;
-            end
+            end 
+            
+            % Compute Maxwell Capacitance Matrix
+
+            V = diag(bodiesVoltage);
+            C = V\Q;
+
+            % Compute Mutual Capacitance Matrix
+                        
+            A = [25, -6, -7; -2,25, -7; -1, -3, 20];
+            MutualCapacitanceMatrix = abs(C);
+            %s = size(A);
+            
+            index = 1:size(C,1)+1:size(C,1)*size(C,2);
+            MutualCapacitanceMatrix(1:size(C,1)+1:size(C,1)*size(C,2)) = ...
+                sum(C,2);
 
             disp("Charge Q")
             disp(Q)
             
-            V = diag(bodiesVoltage);
+            
             disp("Voltage V")
             disp(V)
-            C = V\Q;
+            
             disp("Maxwell Capacitance Matrix")
             disp(C)
+            
+            disp("Mutual Capacitance Matrix")
+            disp(MutualCapacitanceMatrix)
 
             writematrix(MoM,'Results/MoM_Matrix.csv','Delimiter','tab');
             
@@ -132,6 +156,12 @@ classdef Simulation
                 fprintf(fileID,"Two-electrode capacitance compute: "+num2str(abs(C(1,2)))+" F");
                 fclose(fileID);
             end
+            
+            outputData.MoM_Matrix = MoM;
+            outputData.ChargeDensityMatrix = sigma;
+            outputData.ChargeMatrix = Q;
+            outputData.MaxwellCapacitanceMatrix = C;
+            outputData.MutualCapacitanceMatrix = MutualCapacitanceMatrix;
 
         end
     
