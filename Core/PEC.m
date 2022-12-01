@@ -1,7 +1,6 @@
 classdef PEC
     properties
         file
-        name
         geometry
         characteristics
 

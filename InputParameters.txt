@@ -1,4 +1,4 @@
 body1, 1
-body2, -1
+body2, 1e-9
 body3, -5
 body4, 2
